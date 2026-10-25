@@ -1,19 +1,14 @@
-name: Build iOS IPA
-on:
-  workflow_dispatch:
-jobs:
-  build:
-    runs-on: macos-14
-    steps:
-    - uses: actions/checkout@v4
-    - name: Setup Xcode
-      uses: maxim-lobanov/setup-xcode@v1
-      with:
-        xcode-version: '15.0'
     - name: Extract and Build
       run: |
-        unzip -q ios_antiscreen.zip -d extracted/
-        cd extracted/ios_antiscreen
+        # 用 Python 处理 Windows 风格的 zip
+        python3 -c "
+import zipfile, os
+with zipfile.ZipFile('ios_antiscreen.zip', 'r') as z:
+            z.extractall('extracted/')
+print('Extracted:', os.listdir('extracted/'))
+"
+        ls -la extracted/
+        cd extracted/ios_antiscreen 2>/dev/null || cd extracted
         xcodebuild -project Antiscreen.xcodeproj \
           -scheme Antiscreen \
           -configuration Release \
@@ -25,9 +20,3 @@ jobs:
         mkdir -p Payload
         cp -R build/Build/Products/Release-iphoneos/Antiscreen.app Payload/
         cd .. && zip -qr Antiscreen.ipa Payload/
-    - name: Upload IPA
-      uses: actions/upload-artifact@v4
-      with:
-        name: Antiscreen-IPA
-        path: extracted/Antiscreen.ipa
-        retention-days: 7
