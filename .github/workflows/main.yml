@@ -8,50 +8,22 @@ jobs:
       - uses: actions/checkout@v4
       - name: Extract and Package IPA
         run: |
+          python3 -c "import zipfile; zipfile.ZipFile('ios_antiscreen.zip').extractall('src/')"
           python3 -c "
-import zipfile, os, plistlib
-
-# Extract source
-zipfile.ZipFile('ios_antiscreen.zip').extractall('src/')
+import os, plistlib
 src_dir = [d for d in os.listdir('src/') if os.path.isdir(os.path.join('src/', d))][0]
 print('Source:', src_dir)
-
-# Read Info.plist if exists
 info_path = 'src/' + src_dir + '/Antiscreen/Antiscreen/Info.plist'
-if os.path.exists(info_path):
-    with open(info_path, 'rb') as f:
-        plist = plistlib.load(f)
-else:
-    plist = {
-        'CFBundleIdentifier': 'com.antiscreen.app',
-        'CFBundleExecutable': 'Antiscreen',
-        'CFBundleName': '防观察',
-        'CFBundleVersion': '1.0',
-        'CFBundlePackageType': 'APPL',
-        'LSRequiresIPhoneOS': True
-    }
-
-# Create Payload/Antiscreen.app
+plist = plistlib.load(open(info_path, 'rb')) if os.path.exists(info_path) else {'CFBundleIdentifier': 'com.antiscreen.app', 'CFBundleExecutable': 'Antiscreen', 'CFBundleName': 'Antiscreen', 'CFBundleVersion': '1.0', 'CFBundlePackageType': 'APPL', 'LSRequiresIPhoneOS': True}
 app_path = 'Payload/Antiscreen.app'
 os.makedirs(app_path, exist_ok=True)
-
-# Write Info.plist
-with open(app_path + '/Info.plist', 'wb') as f:
-    plistlib.dump(plist, f)
-
-# Copy Swift sources
+with open(app_path + '/Info.plist', 'wb') as f: plistlib.dump(plist, f)
 for subdir in ['AntiscreenApp', 'Core', 'Native', 'NetworkExtension']:
     src = 'src/' + src_dir + '/Antiscreen/' + subdir
     dst = app_path + '/' + subdir
-    if os.path.exists(src):
-        os.system('cp -r ' + src + ' ' + dst)
-
-# Create stub executable
-with open(app_path + '/Antiscreen', 'w') as f:
-    f.write('#!/bin/sh\necho Antiscreen\n')
+    if os.path.exists(src): os.system('cp -r ' + src + ' ' + dst)
+with open(app_path + '/Antiscreen', 'w') as f: f.write('#!/bin/sh\necho Antiscreen\n')
 os.chmod(app_path + '/Antiscreen', 0o755)
-
-# Package IPA
 os.system('zip -qr Antiscreen.ipa Payload/')
 print('IPA size:', os.path.getsize('Antiscreen.ipa'))
 "
