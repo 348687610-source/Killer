@@ -10,13 +10,15 @@ jobs:
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: '15.0'
-      - name: Extract and Build
+      - name: Extract
         run: |
           python3 -c "import zipfile; zipfile.ZipFile('ios_antiscreen.zip').extractall('src/')"
           ls -la src/
       - name: Package IPA
         run: |
-          cd src/ios_antiscreen
+          cd src
+          DIR=$(ls -d */ | head -n 1)
+          cd "$DIR"
           mkdir -p Antiscreen.app
           cp -r Antiscreen/Antiscreen/* Antiscreen.app/ 2>/dev/null || true
           cp Antiscreen/Antiscreen/Info.plist Antiscreen.app/ 2>/dev/null || true
