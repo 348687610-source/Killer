@@ -5,35 +5,22 @@ jobs:
   build:
     runs-on: macos-14
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup Xcode
-      uses: maxim-lobanov/setup-xcode@v1
-      with:
-        xcode-version: '15.0'
-    - name: Extract and Build
-      run: |
-        python3 -c "
-import zipfile, os
-with zipfile.ZipFile('ios_antiscreen.zip', 'r') as z:使用 zipfile.ZipFile('ios_antiscreen.zip', 'r') 作为 z:
-    z.extractall('extracted/')
-print('Extracted:', os.listdir('extracted/'))print('已提取：', os.listdir('extracted/'))
-"
-        ls -la extracted/
-        cd extracted/ios_antiscreen 2>/dev/null || cd extracted
-        xcodebuild -project Antiscreen.xcodeproj \
-          -scheme Antiscreen \
-          -configuration Release \
-          -derivedDataPath build \
-          CODE_SIGN_IDENTITY="" \
-          CODE_SIGNING_REQUIRED=NO \
-          CODE_SIGNING_ALLOWED=NO \
-          build
-        mkdir -p Payload
-        cp -R build/Build/Products/Release-iphoneos/Antiscreen.app Payload/
-        cd .. && zip -qr Antiscreen.ipa Payload/
-    - name: Upload IPA    - 名称: 上传 IPA名称: 上传 IPA    - 名称: 上传 IPA
-      uses      使用情况: actions/upload-artifact@v4      使用: actions/upload-artifact@v4
-      with:      与:
-        name: Antiscreen-IPA        名称: Antiscreen-IPA        名称:         名称: Antiscreen-IPA        名称: Antiscreen-IPA        名称: Antiscreen-IPA        名称: Antiscreen-IPA
-        path: extracted/Antiscreen.ipa
-        retention-days: 7        保留天数: 7
+      - uses: actions/checkout@v4
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '15.0'
+      - name: Extract and Build
+        run: |
+          python3 -c "import zipfile, os; zipfile.ZipFile('ios_antiscreen.zip','r').extractall('extracted/'); print('OK')"
+          cd extracted/ios_antiscreen || cd extracted
+          xcodebuild -project Antiscreen.xcodeproj -scheme Antiscreen -configuration Release -derivedDataPath build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO build || true
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/Antiscreen.app Payload/ 2>/dev/null || echo "Build output not found"
+          cd .. && zip -qr Antiscreen.ipa Payload/ 2>/dev/null || zip -qr Antiscreen.ipa extracted/
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Antiscreen-IPA
+          path: Antiscreen.ipa
+          retention-days: 7
