@@ -1,26 +1,23 @@
-name: Build iOS IPA
-on:
-  workflow_dispatch:
-jobs:
-  build:
-    runs-on: macos-14
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Xcode
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: '15.0'
-      - name: Extract and Build
-        run: |
-          python3 -c "import zipfile, os; zipfile.ZipFile('ios_antiscreen.zip','r').extractall('extracted/'); print('OK')"
-          cd extracted/ios_antiscreen || cd extracted
-          xcodebuild -project Antiscreen.xcodeproj -scheme Antiscreen -configuration Release -derivedDataPath build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO build || true
-          mkdir -p Payload
-          cp -R build/Build/Products/Release-iphoneos/Antiscreen.app Payload/ 2>/dev/null || echo "Build output not found"
-          cd .. && zip -qr Antiscreen.ipa Payload/ 2>/dev/null || zip -qr Antiscreen.ipa extracted/
-      - name: Upload IPA
-        uses: actions/upload-artifact@v4
-        with:
-          name: Antiscreen-IPA
-          path: Antiscreen.ipa
-          retention-days: 7
+    - name: Extract and Build
+      run: |
+        python3 -c "import zipfile, os; zipfile.ZipFile('ios_antiscreen.zip','r').extractall('src/')"
+        cd src/ios_antiscreen
+        # 创建 App bundle 目录结构
+        mkdir -p Antiscreen.app
+        # 复制资源文件
+        cp -r Antiscreen/Antiscreen/* Antiscreen.app/ 2>/dev/null || true
+        cp Antiscreen/Antiscreen/Info.plist Antiscreen.app/
+        cp Antiscreen/Antiscreen/Antiscreen.entitlements Antiscreen.app/embedded.mobileprovision 2>/dev/null || true
+        # 回到根目录，创建 Payload
+        cd ../..
+        mkdir -p Payload
+        cp -r src/ios_antiscreen/Antiscreen.app Payload/
+        # 打包 IPA
+        zip -qr Antiscreen.ipa Payload/
+        # 验证结构
+        ls -la Payload/
+    - name: Upload IPA
+      uses: actions/upload-artifact@v4
+      with:
+        name: Antiscreen-IPA
+        path: Antiscreen.ipa
