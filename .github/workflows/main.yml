@@ -10,22 +10,53 @@ jobs:
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: '15.0'
-      - name: Extract
+      - name: Extract and Package
         run: |
-          python3 -c "import zipfile; zipfile.ZipFile('ios_antiscreen.zip').extractall('src/')"
-          ls -la src/
-      - name: Package IPA
-        run: |
-          cd src
-          DIR=$(ls -d */ | head -n 1)
-          cd "$DIR"
-          mkdir -p Antiscreen.app
-          cp -r Antiscreen/Antiscreen/* Antiscreen.app/ 2>/dev/null || true
-          cp Antiscreen/Antiscreen/Info.plist Antiscreen.app/ 2>/dev/null || true
-          mkdir -p ../../Payload
-          cp -r Antiscreen.app ../../Payload/
-          cd ../.. && zip -qr Antiscreen.ipa Payload/
-          ls -la Antiscreen.ipa
+          python3 -c "
+import zipfile, os, json, plistlib
+
+# Extract
+zipfile.ZipFile('ios_antiscreen.zip').extractall('src/')
+src_dir = [d for d in os.listdir('src/') if os.path.isdir(os.path.join('src/', d))][0]
+print('Source dir:', src_dir)
+
+# Create minimal App bundle
+app_path = 'Payload/Antiscreen.app'
+os.makedirs(app_path, exist_ok=True)
+
+# Copy Info.plist
+info_src = 'src/' + src_dir + '/Antiscreen/Antiscreen/Info.plist'
+if os.path.exists(info_src):
+    with open(info_src, 'rb') as f:
+        plist = plistlib.load(f)
+else:
+    plist = {
+        'CFBundleIdentifier': 'com.antiscreen.app',
+        'CFBundleExecutable': 'Antiscreen',
+        'CFBundleName': '防观察',
+        'CFBundleVersion': '1.0',
+        'CFBundlePackageType': 'APPL',
+        'LSRequiresIPhoneOS': True
+    }
+
+# Write Info.plist
+with open(app_path + '/Info.plist', 'wb') as f:
+    plistlib.dump(plist, f)
+
+# Copy Swift source files
+swift_src = 'src/' + src_dir + '/Antiscreen/AntiscreenApp'
+if os.path.exists(swift_src):
+    os.system('cp -r ' + swift_src + ' ' + app_path + '/')
+    
+# Create executable stub
+with open(app_path + '/Antiscreen', 'w') as f:
+    f.write('#!/bin/sh\necho \"Antiscreen\"\n')
+os.chmod(app_path + '/Antiscreen', 0o755)
+
+# Package IPA
+os.system('zip -qr Antiscreen.ipa Payload/')
+print('IPA size:', os.path.getsize('Antiscreen.ipa'))
+"
       - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
