@@ -6,28 +6,20 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Xcode
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: '15.0'
-      - name: Extract and Package
+      - name: Extract and Package IPA
         run: |
           python3 -c "
-import zipfile, os, json, plistlib
+import zipfile, os, plistlib
 
-# Extract
+# Extract source
 zipfile.ZipFile('ios_antiscreen.zip').extractall('src/')
 src_dir = [d for d in os.listdir('src/') if os.path.isdir(os.path.join('src/', d))][0]
-print('Source dir:', src_dir)
+print('Source:', src_dir)
 
-# Create minimal App bundle
-app_path = 'Payload/Antiscreen.app'
-os.makedirs(app_path, exist_ok=True)
-
-# Copy Info.plist
-info_src = 'src/' + src_dir + '/Antiscreen/Antiscreen/Info.plist'
-if os.path.exists(info_src):
-    with open(info_src, 'rb') as f:
+# Read Info.plist if exists
+info_path = 'src/' + src_dir + '/Antiscreen/Antiscreen/Info.plist'
+if os.path.exists(info_path):
+    with open(info_path, 'rb') as f:
         plist = plistlib.load(f)
 else:
     plist = {
@@ -39,18 +31,24 @@ else:
         'LSRequiresIPhoneOS': True
     }
 
+# Create Payload/Antiscreen.app
+app_path = 'Payload/Antiscreen.app'
+os.makedirs(app_path, exist_ok=True)
+
 # Write Info.plist
 with open(app_path + '/Info.plist', 'wb') as f:
     plistlib.dump(plist, f)
 
-# Copy Swift source files
-swift_src = 'src/' + src_dir + '/Antiscreen/AntiscreenApp'
-if os.path.exists(swift_src):
-    os.system('cp -r ' + swift_src + ' ' + app_path + '/')
-    
-# Create executable stub
+# Copy Swift sources
+for subdir in ['AntiscreenApp', 'Core', 'Native', 'NetworkExtension']:
+    src = 'src/' + src_dir + '/Antiscreen/' + subdir
+    dst = app_path + '/' + subdir
+    if os.path.exists(src):
+        os.system('cp -r ' + src + ' ' + dst)
+
+# Create stub executable
 with open(app_path + '/Antiscreen', 'w') as f:
-    f.write('#!/bin/sh\necho \"Antiscreen\"\n')
+    f.write('#!/bin/sh\necho Antiscreen\n')
 os.chmod(app_path + '/Antiscreen', 0o755)
 
 # Package IPA
