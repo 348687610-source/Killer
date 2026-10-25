@@ -1,16 +1,16 @@
-  name名称: Build iOS IPA构建 iOS IPA
-on开启:
-  workflow_dispatch: workflow_dispatch:
-jobs:作业:
-  build:  构建:
+name: Build iOS IPA
+on:
+  workflow_dispatch:
+jobs:
+  build:
     runs-on: macos-14
     steps:
-    - uses: actions/checkout@v4    - 使用: actions/checkout@v4
-    - name: Setup Xcode    - 名称: 设置 Xcode
-      uses: maxim-lobanov/setup-xcode@v1      使用: maxim-lobanov/setup-xcode@v1
-      with:      与:
+    - uses: actions/checkout@v4
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
         xcode-version: '15.0'
-    - name: Extract and Build    - 名称: 提取与构建
+    - name: Extract and Build
       run: |
         python3 -c "
 import zipfile, os
@@ -31,9 +31,9 @@ print('Extracted:', os.listdir('extracted/'))print('已提取：', os.listdir('e
         mkdir -p Payload
         cp -R build/Build/Products/Release-iphoneos/Antiscreen.app Payload/
         cd .. && zip -qr Antiscreen.ipa Payload/
-    - name: Upload IPA    - 名称: 上传 IPA
-      uses: actions/upload-artifact@v4      使用: actions/upload-artifact@v4
+    - name: Upload IPA    - 名称: 上传 IPA名称: 上传 IPA    - 名称: 上传 IPA
+      uses      使用情况: actions/upload-artifact@v4      使用: actions/upload-artifact@v4
       with:      与:
-        name: Antiscreen-IPA        名称: Antiscreen-IPA
+        name: Antiscreen-IPA        名称: Antiscreen-IPA        名称:         名称: Antiscreen-IPA        名称: Antiscreen-IPA        名称: Antiscreen-IPA        名称: Antiscreen-IPA
         path: extracted/Antiscreen.ipa
         retention-days: 7        保留天数: 7
